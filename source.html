@@ -1,0 +1,90 @@
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+textarea,div{min-height:100px;width:100%;}
+button{width:50%;margin:10px auto;display:block;background:#eee;}
+</style>
+<script src="http://apps.bdimg.com/libs/zepto/1.1.4/zepto.min.js"></script>
+<script src="dist/source-map.min.js" def></script>
+</head>
+<body>
+    <h5>source-map</h5>
+    <textarea id="source"></textarea>
+    <h5>error-log</h5>
+    <textarea id="input"></textarea>
+    <button id="button">parse</button>
+    <h5>output</h5>
+    <pre id="output"></pre>
+<script>
+    var $source = $('#source');
+    var $input = $('#input');
+    var $button = $('#button');
+    var $output = $('#output');
+    var SOURCE_MAP_KEY = 'last-source-map';
+    var ERROR_LOG_KEY = 'last-error-log';
+
+    prepareDefault();
+    $button.click(parse);
+    $button.click();
+
+    function parse() {
+        var errorLog = $input.val();
+        var sourceMap = $source.val();
+        localStorage.setItem(SOURCE_MAP_KEY, $source.val());
+        localStorage.setItem(ERROR_LOG_KEY, $input.val());
+        $output.html(detect(errorLog, sourceMap));
+    }
+
+    function prepareDefault() {
+        var errorLog = `/home/vagrant/tmp/soucemap/build.js:1
+    e, module, __filename, __dirname) { !function(){function n(){return t(),"a"}co
+                                                                        ^
+    ReferenceError: t is not defined
+        at n (/home/vagrant/tmp/soucemap/build.js:1:95)
+        at /home/vagrant/tmp/soucemap/build.js:1:115
+        at Object.<anonymous> (/home/vagrant/tmp/soucemap/build.js:1:120)
+        at Module._compile (module.js:456:26)
+        at Object.Module._extensions..js (module.js:474:10)
+        at Module.load (module.js:356:32)
+        at Function.Module._load (module.js:312:12)
+        at Function.Module.runMain (module.js:497:10)
+        at startup (node.js:119:16)
+        at node.js:902:3`;
+
+        var defaultMap = '{"version":3,"sources":["?","a.js","c.js"],"names":["iama","t","console","log"],"mappings":"CAAA,WCAA,QAASA,KAEL,MADAC,KACO,ICFXC,QAAQC,IAAIH"}';
+
+        ;
+        $source.val(localStorage.getItem(SOURCE_MAP_KEY) || defaultMap);
+        $input.val(localStorage.getItem(ERROR_LOG_KEY) || errorLog);
+    }
+
+    function detect(input, sourceMapText) {
+        var rawSourceMap, smc;
+        try {
+            rawSourceMap = JSON.parse($source.val());
+        } catch(e) {
+            return console.error('parse sourceMapText faild', e);
+        }
+
+        smc = new sourceMap.SourceMapConsumer(rawSourceMap);
+
+        var log = input.replace(/at (.+) \((.+):(\d+)\:(\d+)\)/g, function(str, name, path, line, column) {
+            var org = origin(line, column);
+            if (!org.source) {
+                return str;
+            }
+            return 'at ' + org.name + ' (' + org.source + ':' + org.line + ':' + org.column + ')';
+        });
+        return log;
+        function origin(line, column) {
+            return smc.originalPositionFor({
+              line: +line,
+              column: +column
+            });
+        }
+    }
+
+</script>
+</body>
+</html>
